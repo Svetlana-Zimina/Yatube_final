@@ -27,7 +27,7 @@ class PostsViewsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='username')
-        cls.user_author = User.objects.create(username='author')
+        cls.user_author = User.objects.create_user(username='author')
         cls.group = Group.objects.create(
             title='Группа',
             slug='slug',
@@ -68,10 +68,6 @@ class PostsViewsTests(TestCase):
             ('posts:post_create', 'posts/post_create.html', None),
             ('posts:post_edit', 'posts/post_create.html',
              {'post_id': cls.post.id}),
-        )
-        Follow.objects.create(
-            author=cls.user_author,
-            user=cls.user
         )
 
     @classmethod
@@ -122,11 +118,16 @@ class PostsViewsTests(TestCase):
 
     def test_profile_page_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
+        following = Follow.objects.filter(
+            author=self.user_author,
+            user=self.user
+        ).exists()
         response = self.authorized_client.get(
             reverse('posts:profile', kwargs={'username': self.post.author})
         )
         self.take_post_and_check(response)
         self.assertEqual(response.context['author'], self.user_author)
+        self.assertEqual(response.context['following'], following)
 
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -190,6 +191,12 @@ class PostsViewsTests(TestCase):
 
     def test_authorized_user_can_follow_authors(self):
         """Авторизованный пользователь может подписываться на авторов."""
+        self.authorized_client.post(
+            reverse(
+                'posts:profile_follow',
+                kwargs={'username': self.user_author}
+            ),
+        )
         self.assertTrue(
             Follow.objects.filter(
                 author=self.user_author,
@@ -199,7 +206,16 @@ class PostsViewsTests(TestCase):
 
     def test_authorized_user_can_unfollow_authors(self):
         """Авторизованный пользователь может отписаться от авторов."""
-        Follow.objects.filter(author=self.user_author).delete()
+        Follow.objects.create(
+            author=self.user_author,
+            user=self.user
+        )
+        self.authorized_client.post(
+            reverse(
+                'posts:profile_unfollow',
+                kwargs={'username': self.user_author}
+            ),
+        )
         self.assertFalse(
             Follow.objects.filter(
                 author=self.user_author,
@@ -210,6 +226,10 @@ class PostsViewsTests(TestCase):
     def test_new_following_author_post_is_on_follower_page(self):
         """Новая запись пользователя появляется в ленте тех,
         кто на него подписан."""
+        Follow.objects.create(
+            author=self.user_author,
+            user=self.user
+        )
         new_post = Post.objects.create(
             author=self.user_author,
             text='Новый пост'
@@ -222,7 +242,6 @@ class PostsViewsTests(TestCase):
     def test_new_following_author_post_is_not_on_notfollower_page(self):
         """Новая запись пользователя не появляется в ленте тех,
         кто на него не подписан."""
-        Follow.objects.filter(author=self.user_author).delete()
         new_post = Post.objects.create(
             author=self.user_author,
             text='Новый пост'
@@ -234,16 +253,20 @@ class PostsViewsTests(TestCase):
 
     def test_cach_work(self):
         """Проверка работы кэширования."""
-        response1 = self.authorized_author.get(reverse('posts:index'))
+        response_before = self.authorized_author.get(reverse('posts:index'))
         Post.objects.all().delete()
-        response2 = self.authorized_author.get(reverse('posts:index'))
+        response_after = self.authorized_author.get(reverse('posts:index'))
         self.assertEqual(
-            response1.content,
-            response2.content
+            response_before.content,
+            response_after.content
         )
         cache.clear()
-        response3 = self.authorized_author.get(reverse('posts:index'))
-        self.assertNotEqual(response1.content, response3.content)
+        response_after_cach_clear = self.authorized_author.get(
+            reverse('posts:index')
+        )
+        self.assertNotEqual(
+            response_before.content, response_after_cach_clear.content
+        )
 
 
 class PaginatorViewsTests(TestCase):

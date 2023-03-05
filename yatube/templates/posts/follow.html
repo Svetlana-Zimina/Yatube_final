@@ -4,7 +4,7 @@
 {% endblock %}
 {% block content %}
   <h1>Подписки пользователя {{ user.get_full_name }}</h1>
-  {% include 'posts/includes/switcher.html' %}
+  {% include "posts/includes/switcher.html" with follow=True %}
   {% for post in page_obj %}
     {% include "includes/content.html" %}
     {% if not forloop.last %}<hr>{% endif %}

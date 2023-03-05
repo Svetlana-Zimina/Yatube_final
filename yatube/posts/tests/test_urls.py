@@ -1,9 +1,9 @@
+from http import HTTPStatus
+
 from django.test import Client, TestCase
 from django.core.cache import cache
 
 from posts.models import Group, Post, User
-
-from http import HTTPStatus
 
 
 class PostsURLTests(TestCase):
@@ -12,7 +12,7 @@ class PostsURLTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='username')
-        cls.user_author = User.objects.create(username='author')
+        cls.user_author = User.objects.create_user(username='author')
         cls.group = Group.objects.create(
             title='Группа',
             slug='slug',
@@ -45,11 +45,17 @@ class PostsURLTests(TestCase):
                 response = self.guest_client.get(url)
                 self.assertEqual(response.status_code, status_code)
 
-    def test_create_url_exists_at_desired_location_for_authorized_user(self):
-        """Проверка доступности адреса /create/
+    def test_create_and_follow_url_exists_at_desired_location(self):
+        """Проверка доступности адресов /create/ и /follow/
         для авторизованного пользователя."""
-        response = self.authorized_client.get('/create/')
-        self.assertEqual(response.status_code, HTTPStatus.OK)
+        url_status_code = {
+            '/create/': HTTPStatus.OK,
+            '/follow/': HTTPStatus.OK,
+        }
+        for url, status_code in url_status_code.items():
+            with self.subTest(url=url):
+                response = self.authorized_client.get(url)
+                self.assertEqual(response.status_code, status_code)
 
     def test_post_edit_url_exists_at_desired_location_for_author(self):
         """Проверка доступности адреса /posts/post.id/edit/ для автора."""

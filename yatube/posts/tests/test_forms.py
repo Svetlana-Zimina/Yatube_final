@@ -1,3 +1,6 @@
+import shutil
+import tempfile
+
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
@@ -10,9 +13,6 @@ from posts.models import (
     Post,
     User
 )
-
-import shutil
-import tempfile
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -87,15 +87,29 @@ class PostFormTests(TestCase):
 
     def test_edit_post_resave_post_in_base(self):
         """Валидная форма изменяет пост в базе данных."""
+        posts_count = Post.objects.count()
         group2 = Group.objects.create(
             title='Группа2',
             slug='slug2',
             description='Описание2',
         )
-        posts_count = Post.objects.count()
+        small2_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small2.gif',
+            content=small2_gif,
+            content_type='image/gif'
+        )
         form_data = {
             'text': 'Новый текст поста',
             'group': group2.id,
+            'image': uploaded,
         }
         response = self.authorized_author.post(
             reverse('posts:post_edit', kwargs={'post_id': self.post.id}),
@@ -112,6 +126,7 @@ class PostFormTests(TestCase):
                 text='Новый текст поста',
                 author=self.post.author,
                 group=group2,
+                image='posts/small2.gif'
             ).exists()
         )
 
@@ -139,6 +154,7 @@ class CommentFormTests(TestCase):
         cls.form = CommentForm()
 
     def setUp(self):
+        self.guest_client = Client()
         self.authorized_author = Client()
         self.authorized_author.force_login(self.user)
 
@@ -161,6 +177,17 @@ class CommentFormTests(TestCase):
         self.assertTrue(
             Comment.objects.filter(text='Текст комментария',).exists()
         )
+
+    def test_not_authorized_user_can_not_live_comment(self):
+        """Неавторизованный пользователь не может оставить комментарий."""
+        comments_count = Comment.objects.count()
+        form_data = {'text': 'Текст комментария', }
+        self.guest_client.post(
+            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
+            data=form_data,
+            follow=True
+        )
+        self.assertEqual(Comment.objects.count(), comments_count)
 
     def test_help_text(self):
         text_help_text = CommentFormTests.form.fields['text'].help_text

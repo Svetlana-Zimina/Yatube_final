@@ -1,3 +1,51 @@
-# hw05_final
+## Описание
+«Yatube» — социальная сеть для блогеров. Зарегистрированные пользователи могут размещать посты, подписываться на других авторов и добавлять свои комментарии. 
+Проект создан для тренировки написания web приложения с использованием фреймворка Django, в котором:
+- создана система регистрации и аутентификации пользователей;
+- написаны тесты на код приложения;
+- настроено кеширование главной страницы (Список постов на главной странице сайта хранится в кэше и обновляется раз в 20 секунд.)
 
-[![CI](https://github.com/yandex-praktikum/hw05_final/actions/workflows/python-app.yml/badge.svg?branch=master)](https://github.com/yandex-praktikum/hw05_final/actions/workflows/python-app.yml)
+Frontend часть реализована с помощью html шаблонов.
+
+
+## Технологии
+- Python
+- Django
+
+
+## Локальный запуск проекта
+
+1. ### Склонируйте репозиторий:
+```
+git clone git@github.com:Svetlana-Zimina/hw05_final.git
+```
+
+2. ### Создайте и активируйте виртуальное окружение:
+Команда для установки виртуального окружения на Mac или Linux:
+```
+python3 -m venv env
+source env/bin/activate
+```
+
+Команда для установки виртуального окружения на Windows:
+```
+python -m venv venv
+source venv/Scripts/activate
+```
+
+
+3. ### Установите зависимости:
+```
+pip install -r requirements.txt
+```
+
+8. ### Запустите локальный сервер:
+```
+cd yatube
+python manage.py runserver
+```
+
+
+## Авторы
+Светлана Зимина
+https://github.com/Svetlana-Zimina
